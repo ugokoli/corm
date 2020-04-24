@@ -9,12 +9,12 @@ import (
 	"strings"
 )
 
-func (d *DB) AutoMigrate(models ...interface{}) {
+func (d *DB) Create(models ...interface{}) {
 	for _, model := range models {
 		var query string
 		var err error
 
-		if query, err = generateCreateTableCQL(model); err != nil {
+		if query, err = generateInsertRecordCQL(model); err != nil {
 			d.Error = logger.Error("%v", err)
 			continue
 		}
@@ -25,7 +25,7 @@ func (d *DB) AutoMigrate(models ...interface{}) {
 	}
 }
 
-func generateCreateTableCQL(model interface{}) (string, error) {
+func generateInsertRecordCQL(model interface{}) (string, error) {
 	r := reflect.TypeOf(model)
 
 	tableName := utility.ToSnakeCase(r.Name())

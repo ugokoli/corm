@@ -16,9 +16,12 @@ type SampleModel struct {
 	UpdatedAt   time.Time `corm:"name:updated_at" json:"updated_at"`
 }
 
-// TableName sets the insert table name for this struct type
 func (a SampleModel) TableName() string {
 	return "custom_sample_model_name"
+}
+
+func (a SampleModel) CreateWith() string {
+	return "WITH comment='A sample model'"
 }
 
 func TestParseModel(t *testing.T) {

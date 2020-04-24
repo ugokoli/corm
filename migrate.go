@@ -29,9 +29,13 @@ func generateCreateTableCQL(model interface{}) (string, error) {
 	r := reflect.TypeOf(model)
 
 	tableName := utility.ToSnakeCase(r.Name())
-	m, ok := model.(ModelInterface)
-	if ok {
+	if m, ok := model.(ModelInterface); ok {
 		tableName = m.TableName()
+	}
+
+	createWith := ""
+	if m, ok := model.(CreateWithInterface); ok {
+		createWith = m.CreateWith()
 	}
 
 	var fields []columnData
@@ -66,5 +70,5 @@ func generateCreateTableCQL(model interface{}) (string, error) {
 	primaryKeys := []string{partitionSpread}
 	primaryKeys = append(primaryKeys, clusteringColumns...)
 
-	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(%s, PRIMARY KEY(%s));", tableName, strings.Join(columns, ", "), strings.Join(primaryKeys, ",")), nil
+	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(%s, PRIMARY KEY(%s)) %s;", tableName, strings.Join(columns, ", "), strings.Join(primaryKeys, ","), createWith), nil
 }

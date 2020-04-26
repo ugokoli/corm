@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ugokoli/corm/logger"
-	"github.com/ugokoli/corm/utility"
-	"reflect"
 	"strings"
 )
 
@@ -26,17 +24,8 @@ func (d *DB) AutoMigrate(models ...interface{}) {
 }
 
 func generateCreateTableCQL(model interface{}) (string, error) {
-	r := reflect.TypeOf(model)
-
-	tableName := utility.ToSnakeCase(r.Name())
-	if m, ok := model.(ModelInterface); ok {
-		tableName = m.TableName()
-	}
-
-	createWith := ""
-	if m, ok := model.(CreateWithInterface); ok {
-		createWith = m.CreateWith()
-	}
+	tableName := getModelName(model)
+	withOptions := getModelWithOptions(model)
 
 	var fields []columnData
 	var err error
@@ -49,6 +38,7 @@ func generateCreateTableCQL(model interface{}) (string, error) {
 	var partitionKeys []string
 	var clusteringColumns []string
 	isStatic := map[bool]string{true: " static", false: ""}
+
 	for _, field := range fields {
 		columns = append(columns, fmt.Sprintf("%s %s%s", field.Name, field.Type, isStatic[field.Static]))
 
@@ -70,5 +60,5 @@ func generateCreateTableCQL(model interface{}) (string, error) {
 	primaryKeys := []string{partitionSpread}
 	primaryKeys = append(primaryKeys, clusteringColumns...)
 
-	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(%s, PRIMARY KEY(%s)) %s;", tableName, strings.Join(columns, ", "), strings.Join(primaryKeys, ","), createWith), nil
+	return fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s(%s, PRIMARY KEY(%s)) %s;`, tableName, strings.Join(columns, ", "), strings.Join(primaryKeys, ","), withOptions), nil
 }

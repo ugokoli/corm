@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ugokoli/corm/utility"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -14,6 +15,26 @@ type BaseModel struct {
 	UUID      string    `corm:"partition_key;type:uuid" json:"uuid"`
 	CreatedBy string    `corm:"name:created_by" json:"created_by"`
 	CreatedAt time.Time `corm:"name:created_at" json:"created_at"`
+}
+
+func getModelName(model interface{}) string {
+	r := reflect.TypeOf(model)
+
+	tableName := utility.ToSnakeCase(r.Name())
+	if m, ok := model.(TableNameInterface); ok {
+		tableName = m.TableName()
+	}
+
+	return tableName
+}
+
+func getModelWithOptions(model interface{}) string {
+	withOptions := ""
+	if m, ok := model.(WithOptionsInterface); ok {
+		withOptions = m.WithOptions()
+	}
+
+	return withOptions
 }
 
 // Parse all fields including fields from injected embedded struct models
@@ -28,8 +49,10 @@ func parseModel(model interface{}) ([]columnData, error) {
 		fieldV := rV.Field(i)
 
 		fData := columnData{
-			Name: utility.ToSnakeCase(fieldT.Name),
-			Type: fieldT.Type.String(),
+			Name:          utility.ToSnakeCase(fieldT.Name),
+			Value:         fieldV.Interface(),
+			Type:          fieldT.Type.String(),
+			PrimitiveType: fieldV.Type(),
 		}
 
 		// If it is an embedded struct field, otherwise known as an Anonymous field
@@ -67,7 +90,11 @@ func parseModel(model interface{}) ([]columnData, error) {
 					fData.Type = configValue
 					break
 				case "default":
-					fData.Default = configValue
+					if intVal, err := strconv.Atoi(configValue); err != nil {
+						fData.Default = configValue
+					} else {
+						fData.Default = intVal
+					}
 					break
 				case "size":
 					fData.Size = configValue
@@ -98,6 +125,7 @@ func parseModel(model interface{}) ([]columnData, error) {
 		}
 		fData.Type = dType
 
+		// Check primary key and column options
 		var numDefSet int
 		columnDef := [3]bool{fData.Partition, fData.Cluster, fData.Static}
 		for _, value := range columnDef {
@@ -106,7 +134,7 @@ func parseModel(model interface{}) ([]columnData, error) {
 			}
 		}
 		if numDefSet > 1 {
-			return nil, errors.New(fmt.Sprintf("%s.%s can only be either a partition key, cluster coulmn or static column", rT.Name(), fieldT.Name))
+			return nil, errors.New(fmt.Sprintf("%s.%s can only be either a partition key, cluster column or static column", rT.Name(), fieldT.Name))
 		}
 
 		data = append(data, fData)

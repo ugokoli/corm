@@ -1,6 +1,6 @@
 package corm
 
-type ModelInterface interface {
+type TableNameInterface interface {
 	TableName() string
 }
 
@@ -8,6 +8,6 @@ type BeforeCreateInterface interface {
 	BeforeCreate() error
 }
 
-type CreateWithInterface interface {
-	CreateWith() string
+type WithOptionsInterface interface {
+	WithOptions() string
 }

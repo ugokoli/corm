@@ -1,18 +1,22 @@
 package corm
 
+import "reflect"
+
 type (
 	// http://cassandra.apache.org/doc/latest/cql/ddl.html#create-table
 	// Partition and Cluster are types of PRIMARY KEY
 	columnData struct {
-		Index     bool
-		Name      string
-		Type      string
-		Size      string
-		Partition bool // partition key is a PRIMARY KEY
-		Cluster   bool // clustering column is a PRIMARY KEY
-		Static    bool // static column is not a PRIMARY KEY
-		Unique    bool
-		Default   interface{}
+		Index         bool
+		Name          string
+		Value         interface{}
+		Default       interface{}
+		Type          string
+		PrimitiveType reflect.Type
+		Size          string
+		Partition     bool // partition key is a PRIMARY KEY
+		Cluster       bool // clustering column is a PRIMARY KEY
+		Static        bool // static column is not a PRIMARY KEY
+		Unique        bool
 	}
 )
 

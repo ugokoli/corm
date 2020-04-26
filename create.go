@@ -1,74 +1,57 @@
 package corm
 
 import (
-	"errors"
 	"fmt"
 	"github.com/ugokoli/corm/logger"
-	"github.com/ugokoli/corm/utility"
 	"reflect"
 	"strings"
 )
 
-func (d *DB) Create(models ...interface{}) {
-	for _, model := range models {
-		var query string
-		var err error
+func (d *DB) Create(model interface{}) *DB {
+	var stmt string
+	var values []interface{}
+	var err error
 
-		if query, err = generateInsertRecordCQL(model); err != nil {
-			d.Error = logger.Error("%v", err)
-			continue
-		}
-
-		if err = d.session.Query(query).Exec(); err != nil {
-			d.Error = logger.Error("%v", err)
-		}
+	if stmt, values, err = generateInsertRecordCQL(model); err != nil {
+		d.Error = logger.Error("%v", err)
+		return d
 	}
+
+	if err = d.session.Query(stmt, values...).Exec(); err != nil {
+		d.Error = logger.Error("%v", err)
+		return d
+	}
+
+	return d
 }
 
-func generateInsertRecordCQL(model interface{}) (string, error) {
-	r := reflect.TypeOf(model)
-
-	tableName := utility.ToSnakeCase(r.Name())
-	if m, ok := model.(ModelInterface); ok {
-		tableName = m.TableName()
-	}
-
-	createWith := ""
-	if m, ok := model.(CreateWithInterface); ok {
-		createWith = m.CreateWith()
-	}
+func generateInsertRecordCQL(model interface{}) (string, []interface{}, error) {
+	tableName := getModelName(model)
 
 	var fields []columnData
+	var columns []string
+	var valueTags []string
+	var values []interface{}
 	var err error
 
 	if fields, err = parseModel(model); err != nil {
-		return "", err
+		return "", values, err
 	}
 
-	var columns []string
-	var partitionKeys []string
-	var clusteringColumns []string
-	isStatic := map[bool]string{true: " static", false: ""}
 	for _, field := range fields {
-		columns = append(columns, fmt.Sprintf("%s %s%s", field.Name, field.Type, isStatic[field.Static]))
+		value := field.Value
+		rT := reflect.ValueOf(value)
+		if rT.IsZero() {
+			if field.Default == nil {
+				continue
+			}
+			value = field.Default
+		}
 
-		if field.Partition {
-			partitionKeys = append(partitionKeys, field.Name)
-		}
-		if field.Cluster {
-			clusteringColumns = append(clusteringColumns, field.Name)
-		}
+		columns = append(columns, field.Name)
+		valueTags = append(valueTags, "?")
+		values = append(values, value)
 	}
 
-	partitionSpread := strings.Join(partitionKeys, ",")
-	if len(partitionKeys) == 0 {
-		return "", errors.New(fmt.Sprintf("table %s must have at least one(1) partition key", tableName))
-	} else if len(partitionKeys) > 1 {
-		partitionSpread = fmt.Sprintf("(%s)", partitionSpread)
-	}
-
-	primaryKeys := []string{partitionSpread}
-	primaryKeys = append(primaryKeys, clusteringColumns...)
-
-	return fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s(%s, PRIMARY KEY(%s)) %s;", tableName, strings.Join(columns, ", "), strings.Join(primaryKeys, ","), createWith), nil
+	return fmt.Sprintf(`INSERT INTO %s (%s) VALUES (%s)`, tableName, strings.Join(columns, ", "), strings.Join(valueTags, ", ")), values, nil
 }

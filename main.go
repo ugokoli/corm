@@ -31,6 +31,10 @@ func Open(hosts []string, keyspace string, user string, password string, port in
 	return &db, nil
 }
 
+func (d *DB) Close() {
+	d.session.Close()
+}
+
 // Plug in an existing GoCQL connection
 func PlugIn(session *gocql.Session) *DB {
 	db := DB{
@@ -40,6 +44,7 @@ func PlugIn(session *gocql.Session) *DB {
 	return &db
 }
 
+// Get GoCQL session to use it's functions externally
 func (d *DB) GetSession() *gocql.Session {
 	return d.session
 }

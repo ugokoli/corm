@@ -8,7 +8,7 @@ import (
 func TestGenerateInsertRecordCQL(t *testing.T) {
 	nowTime := time.Now()
 	sampleModel := SampleModel{
-		BaseModel: BaseModel{
+		Model: Model{
 			ID:        "123e4567-e89b-12d3-a456-426655440000",
 			CreatedAt: nowTime,
 		},

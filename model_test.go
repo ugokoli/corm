@@ -6,7 +6,7 @@ import (
 )
 
 type SampleModel struct {
-	BaseModel
+	Model
 	Password    string    `corm:"name:password" json:"-"`
 	IgnoreMe    float32   `corm:"-" json:"email"`
 	Email       string    `corm:"name:email;UNIQUE;INDEX" json:"email"`

@@ -10,11 +10,11 @@ import (
 	"time"
 )
 
-type BaseModel struct {
-	ID        string    `corm:"name:id;partition_key" json:"id"`
-	UUID      string    `corm:"partition_key;type:uuid" json:"uuid"`
-	CreatedBy string    `corm:"name:created_by" json:"created_by"`
-	CreatedAt time.Time `corm:"name:created_at" json:"created_at"`
+type Model struct {
+	ID        string `corm:"partition_key;type:uuid"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt time.Time
 }
 
 func getModelName(model interface{}) string {

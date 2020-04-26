@@ -39,3 +39,7 @@ func PlugIn(session *gocql.Session) *DB {
 
 	return &db
 }
+
+func (d *DB) GetSession() *gocql.Session {
+	return d.session
+}
